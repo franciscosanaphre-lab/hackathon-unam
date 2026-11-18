@@ -1,6 +1,6 @@
 # Colaboración con Git y GitHub
 
-Repositorio privado: pendiente de autenticación y creación en GitHub. Rama compartida: `main`.
+Repositorio privado: https://github.com/franciscosanaphre-lab/hackathon-unam. Rama compartida: `main`.
 Cada persona usa su propia cuenta GitHub y su propia copia del repositorio. El colaborador debe aceptar la invitación antes de clonar.
 
 ## Preparar otra computadora Windows (CMD)
@@ -19,7 +19,7 @@ Cuando el repositorio esté creado, usa su URL HTTPS real:
 
 ```cmd
 cd /d "%USERPROFILE%\Documents"
-git clone URL_HTTPS_DEL_REPOSITORIO hackathon-unam
+git clone https://github.com/franciscosanaphre-lab/hackathon-unam hackathon-unam
 cd hackathon-unam
 git switch main
 git config --local pull.ff only
