@@ -68,9 +68,9 @@ export default function Evolution({ s, selected, onPick }: { s: Series; selected
       <div className="mb-2 flex flex-wrap items-center gap-2 text-xs" style={{ color: C.mute }}>
         <button onClick={() => move(-1)} className="rounded border px-2 py-1 font-semibold" style={{ borderColor: C.line, color: C.text }} aria-label="Intervención anterior">◀ anterior</button>
         <button onClick={() => move(1)} className="rounded border px-2 py-1 font-semibold" style={{ borderColor: C.line, color: C.text }} aria-label="Intervención siguiente">siguiente ▶</button>
-        <span>También con las flechas del teclado · clic en un punto abre su replay.</span>
+        <span title="También puedes usar las flechas del teclado">Clic en un punto para abrir su replay</span>
       </div>
-      <div style={{ width: '100%', height: 340 }}>
+      <div style={{ width: '100%', height: 300 }}>
         <ResponsiveContainer>
           <ComposedChart data={data} margin={{ top: 8, right: 16, bottom: 8, left: 0 }}>
             <CartesianGrid stroke={C.line} strokeDasharray="3 3" />
@@ -92,7 +92,14 @@ export default function Evolution({ s, selected, onPick }: { s: Series; selected
           </ComposedChart>
         </ResponsiveContainer>
       </div>
-      <ul className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-xs" style={{ color: C.mute }}>
+      <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs" style={{ color: C.mute }}>
+        <li><span style={{ color: C.pt }}>●</span> Jugada</li>
+        <li><span style={{ color: C.warn }}>▲</span> Marca de revisión</li>
+        <li><span style={{ color: C.ok }}>━</span> Su referencia (100)</li>
+      </ul>
+      <details className="mt-1 text-xs" style={{ color: C.mute }}>
+        <summary className="cursor-pointer">Leyenda completa</summary>
+              <ul className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-xs" style={{ color: C.mute }}>
         <li><span style={{ color: C.pt }}>●</span> Intervención comparable</li>
         <li><span style={{ color: C.warn }}>▲</span> Marca de revisión (triángulo ámbar)</li>
         <li>○ Play action / no comparable (fuera de referencia y alertas)</li>
@@ -100,6 +107,7 @@ export default function Evolution({ s, selected, onPick }: { s: Series; selected
         <li><span style={{ color: C.ok }}>▭</span> Variación habitual (±{fmt(habit, 0)}%)</li>
         <li>▨ Sin observación como Pass Rush — <b>no</b> es descanso confirmado</li>
       </ul>
+      </details>
       <details className="mt-3 text-xs" style={{ color: C.mute }}>
         <summary className="cursor-pointer font-semibold" style={{ color: C.text }}>Ver como tabla (alternativa accesible)</summary>
         <div className="mt-2 max-h-72 overflow-auto">

@@ -61,7 +61,7 @@ export default function CompareView({ cmp, single, nflId, mode, points, refPlayI
   const pct = (x: number) => `${((x - minRel) / Math.max(maxRel - minRel, 1)) * 100}%`
 
   return (
-    <Card title="Comparador de replays" sub={synced ? 'Ambas jugadas sincronizadas en el snap (evento común). Interpolación solo visual; las métricas usan las 10 muestras originales a 10 fps (0.1 s cada una).' : 'Falta snap en una jugada: no hay sincronización común.'}>
+    <Card title="Comparador de replays" sub={synced ? 'Ambas jugadas sincronizadas en el snap.' : 'Falta snap en una jugada: no hay sincronización común.'}>
       {single && <div className="mb-2 rounded border px-3 py-2 text-xs" style={{ borderColor: C.warn, color: C.warn }}>⚠ {single.message} Se muestra solo el replay de la jugada seleccionada.</div>}
       {cmp?.warnings.map(w => <div key={w} className="mb-2 rounded border px-3 py-1.5 text-xs" style={{ borderColor: C.warn, color: C.warn }}>⚠ {w}</div>)}
 
@@ -71,9 +71,9 @@ export default function CompareView({ cmp, single, nflId, mode, points, refPlayI
           <button className={btn} style={{ borderColor: C.ok, color: C.ok }} onClick={() => { if (rel >= maxRel) setRel(0); setPlay(p => !p) }}>{play ? '⏸ Pausa' : '▶ Reproducir'}</button>
           <button className={btn} style={{ borderColor: C.line }} onClick={() => step(1)} aria-label="Avanzar un frame (0.1 s)">+1 frame ▶</button>
           <button className={btn} style={{ borderColor: C.line }} onClick={() => { setPlay(false); setRel(0) }}>Ir al snap</button>
-          <label className="text-xs" style={{ color: C.mute }}>Velocidad de reproducción
+          <label className="text-xs" style={{ color: C.mute }}>Velocidad
             <select value={speed} onChange={e => setSpeed(Number(e.target.value))} className="ml-1 rounded border bg-transparent px-1 py-1" style={{ borderColor: C.line, color: C.text }}>
-              {[0.1, 0.25, 0.5, 1].map(v => <option key={v} value={v} style={{ background: C.bg }}>{v}× (1× = tiempo real)</option>)}
+              {[0.1, 0.25, 0.5, 1].map(v => <option key={v} value={v} style={{ background: C.bg }}>{v}×</option>)}
             </select></label>
           <span className="ml-auto text-xs font-semibold" style={{ color: C.text }}>{rel >= 0 ? '+' : '−'}{(Math.abs(rel) / fps).toFixed(2)} s desde el snap</span>
         </div>
@@ -82,7 +82,8 @@ export default function CompareView({ cmp, single, nflId, mode, points, refPlayI
           <input type="range" min={minRel} max={maxRel} step={0.1} value={rel} onChange={e => { setPlay(false); setRel(Number(e.target.value)) }} className="relative w-full" aria-label="Posición en frames relativos al snap" />
         </div>
         <div className="mt-0.5 text-[11px]" style={{ color: C.mute }}>
-          <span style={{ color: C.warn }}>▬</span> Ventana de la métrica: snap → +1.0 s (10 muestras: frames snap+1 … snap+10; el desplazamiento usa además el frame del snap). Eje: {(minRel / fps).toFixed(1)} s … +{(maxRel / fps).toFixed(1)} s.
+          <span style={{ color: C.warn }}>▬</span> Ventana de la métrica: snap → +1.0 s
+          <span title={`10 muestras originales a 10 fps (frames snap+1 … snap+10); el desplazamiento usa además el frame del snap. La interpolación es solo visual. Eje: ${(minRel / fps).toFixed(1)} s … +${(maxRel / fps).toFixed(1)} s.`}> ⓘ</span>
         </div>
       </div>
 
@@ -116,12 +117,12 @@ export default function CompareView({ cmp, single, nflId, mode, points, refPlayI
             <div className="text-sm font-semibold">Calidad de la comparación: <span style={{ color: qColor(cmp.quality.nivel) }}>{qIcon(cmp.quality.nivel)} {cmp.quality.nivel.toUpperCase()}</span></div>
             <div className="text-xs" style={{ color: C.mute }}>{cmp.reference_auto ? `Selección automática entre ${cmp.match_info.n_candidatas} candidatas${cmp.match_info.solo_pasado ? ' (solo jugadas previas)' : ''}` : 'Referencia elegida manualmente'}</div>
           </div>
-          <p className="mt-1 text-xs" style={{ color: C.mute }}>{cmp.quality.regla}</p>
-          <p className="mt-1 text-xs" style={{ color: C.mute }}>Criterio: {cmp.reference_rule}</p>
+          <details className="mt-1 text-xs" style={{ color: C.mute }}><summary className="cursor-pointer">Cómo se calcula</summary><p className="mt-1">{cmp.quality.regla}</p><p className="mt-1">Criterio: {cmp.reference_rule}</p></details>
         </div>
 
-        <div className="mt-3 overflow-x-auto">
-          <table className="w-full text-left text-xs">
+        <details className="mt-3 overflow-x-auto text-xs">
+          <summary className="cursor-pointer font-semibold" style={{ color: C.text }}>Ver diferencias de contexto ({cmp.context.filter(r => r.difiere).length} difieren)</summary>
+          <table className="mt-2 w-full text-left text-xs">
             <caption className="sr-only">Diferencias de contexto entre la jugada de referencia y la seleccionada</caption>
             <thead style={{ color: C.mute }}><tr><th className="py-1">Contexto</th><th>Referencia</th><th>Seleccionada</th><th className="w-24">¿Difiere?</th></tr></thead>
             <tbody>
@@ -135,7 +136,7 @@ export default function CompareView({ cmp, single, nflId, mode, points, refPlayI
               ))}
             </tbody>
           </table>
-        </div>
+        </details>
       </>)}
     </Card>
   )

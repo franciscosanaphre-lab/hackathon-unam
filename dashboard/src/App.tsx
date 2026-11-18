@@ -170,9 +170,10 @@ export default function App() {
             {demoKind && <button onClick={() => activateDemo(demoKind)} className="rounded-md border px-2 py-1.5 text-[11px]" style={{ borderColor: C.line, color: C.mute }}>↺ Reiniciar</button>}
           </div>
         </div>
-        <p className="mt-2 text-xs" style={{ color: C.mute }}>
-          <b style={{ color: C.text }}>{mode === 'live' ? 'En ese momento:' : 'Retrospectivo:'}</b> {mode === 'live' ? 'referencia, umbral, suavizado y comparación automática usan solo intervenciones anteriores a cada punto; la referencia crece con el partido.' : 'la referencia es fija (toda su historia del dataset, incluidas jugadas posteriores): sirve para analizar, no simula lo que se sabía en vivo.'}
-        </p>
+        <details className="mt-2 text-xs" style={{ color: C.mute }}>
+          <summary className="cursor-pointer">{mode === 'live' ? 'Modo «en ese momento»: solo usa datos anteriores a cada jugada' : 'Modo «retrospectivo»: usa toda la historia del jugador'} · <span style={{ color: C.text }}>más</span></summary>
+          <p className="mt-1">{mode === 'live' ? 'Referencia, umbral, suavizado y comparación automática usan solo intervenciones previas; la referencia crece con el partido.' : 'La referencia es fija (toda su historia del dataset, incluidas jugadas posteriores): sirve para analizar, no simula lo que se sabía en vivo.'}</p>
+        </details>
       </Card>
 
       {demoActive && demo && <DemoNarrative demo={demo} cmp={cmpOk} />}
@@ -192,15 +193,16 @@ export default function App() {
             {selPoint && <><span>Jugada {selPoint.playId} · Q{selPoint.ctx.cuarto} {selPoint.ctx.reloj}</span><span>Índice <b>{fmt(selPoint.index, 0)}</b> · {fmt(selPoint.v, 2)} yd/s</span></>}
           </div>
           {selPoint && <div className="mt-1 text-xs" style={{ color: C.mute }}>
-            Estado de <b style={{ color: C.text }}>esta jugada</b>: <span style={{ color: statusColor(selPoint.evaluated ? selPoint.status : 'x') }}>{stLabel(selPoint)}</span> · Estado <b style={{ color: C.text }}>al final del partido</b>: {s.status_label}. Pueden diferir: una secuencia baja en medio del partido no cambia el estado final si las últimas jugadas volvieron a su rango.
+            Esta jugada: <span style={{ color: statusColor(selPoint.evaluated ? selPoint.status : 'x') }}>{stLabel(selPoint)}</span> · Final del partido: {s.status_label}
+            <span title="Una secuencia baja a mitad de partido no cambia el estado final si las últimas jugadas volvieron a su rango."> ⓘ</span>
           </div>}
         </div>
 
-        <div className="grid gap-4 md:grid-cols-4">
-          <Stat label="Estado al final del partido" big={<Pill status={s.status} label={s.status_label} />} foot={flagged.length ? `▲ ${flagged.length} punto(s) con marca durante el partido` : 'Sin marcas durante el partido'} color={statusColor(s.status)} />
-          <Stat label="Índice mediano del partido" big={<span className="text-3xl font-bold">{fmt(s.median_index, 0)}</span>} foot="100 = su propia referencia (no es % de capacidad)" />
-          <Stat label="Muestra" big={<span className="text-3xl font-bold">{s.n_comparable}<span className="text-base font-normal" style={{ color: C.mute }}> / {s.n_obs}</span></span>} foot={`comparables / observadas · ${s.n_valid} con ventana válida`} />
-          <Stat label={`Referencia (${mode === 'live' ? 'creciente' : 'fija'})`} big={<span className="text-3xl font-bold">{fmt(s.v_ref, 2)}<span className="text-base font-normal" style={{ color: C.mute }}> yd/s</span></span>} foot={`n=${s.ref_n} · ${s.ref_games} partidos · ±${fmt(s.habit_pct, 0)}% · ${mode === 'live' ? 'valor al último punto' : 'toda su historia'}`} />
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          <Stat label="Estado final" big={<Pill status={s.status} label={s.status_label} />} foot={flagged.length ? `▲ ${flagged.length} marca(s) en el partido` : 'Sin marcas'} color={statusColor(s.status)} />
+          <Stat label="Índice mediano" big={<span className="text-2xl font-bold">{fmt(s.median_index, 0)}</span>} foot="100 = su referencia" />
+          <Stat label="Muestra" big={<span className="text-2xl font-bold">{s.n_comparable}<span className="text-sm font-normal" style={{ color: C.mute }}> / {s.n_obs}</span></span>} foot="comparables / observadas" />
+          <Stat label={`Referencia (${mode === 'live' ? 'creciente' : 'fija'})`} big={<span className="text-2xl font-bold">{fmt(s.v_ref, 2)}<span className="text-sm font-normal" style={{ color: C.mute }}> yd/s</span></span>} foot={`n=${s.ref_n} · ${s.ref_games} partidos`} />
         </div>
 
         <Synthesis cmp={cmpOk} noRef={noRefOk} loading={cLoad} err={cErr} nflId={nflId!} gameId={gameId!} playId={playId} mode={mode} selPoint={selPoint} />
@@ -257,22 +259,28 @@ function Synthesis({ cmp, noRef, loading, err, nflId, gameId, playId, mode, selP
   return (
     <section className="rounded-xl border p-4" style={{ background: C.panel, borderColor: C.ok }}>
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-sm font-semibold uppercase tracking-wider" style={{ color: C.mute }}>Hallazgo en un minuto · jugada seleccionada</h2>
-        {playId != null && <a href={`api/report?nflId=${nflId}&gameId=${gameId}&playId=${playId}&mode=${mode}`} download className="rounded-md border px-3 py-1.5 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-sky-400" style={{ borderColor: C.ok, color: C.ok }}>⬇ Exportar reporte (.md)</a>}
+        <h2 className="text-sm font-semibold uppercase tracking-wider" style={{ color: C.mute }}>Resumen de la jugada seleccionada</h2>
+        {playId != null && <a href={`api/report?nflId=${nflId}&gameId=${gameId}&playId=${playId}&mode=${mode}`} download className="rounded-md border px-3 py-1.5 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-sky-400" style={{ borderColor: C.ok, color: C.ok }}>⬇ Exportar reporte</a>}
       </div>
       {loading && <p className="text-sm" style={{ color: C.mute }}>⏳ Calculando comparación…</p>}
       {err && <p className="text-sm" style={{ color: C.warn }}>⚠ {err}</p>}
       {noRef && <p className="text-sm" style={{ color: C.warn }}>No hay una jugada de referencia comparable: {noRef.message}. {selPoint && selPoint.index != null ? `La jugada seleccionada tiene índice ${fmt(selPoint.index, 0)}, pero sin comparación contextual no se interpreta.` : ''} El replay de la jugada sigue disponible abajo.</p>}
       {cmp && !loading && (
         <dl className="space-y-2">
-          {row('1 · Qué cambió', cmp.synthesis.cambio)}
-          {row('2 · Magnitud y persistencia', cmp.synthesis.magnitud_persistencia)}
-          {row('3 · Referencia y muestra', cmp.synthesis.referencia)}
-          <div className="grid gap-1 sm:grid-cols-[170px_1fr]"><dt className="text-xs font-semibold uppercase tracking-wide" style={{ color: C.mute }}>4 · Contexto</dt>
-            <dd className="text-sm">Calidad de comparación <b style={{ color: q!.nivel === 'alta' ? C.ok : C.warn }}>{q!.nivel.toUpperCase()}</b> (jugada {cmp.reference.point.playId}). {cmp.mismatches.filter(m => m.difiere).length === 0 ? 'No difieren los factores clave.' : <>Difieren: {cmp.mismatches.filter(m => m.difiere).map(m => `${m.factor} (${String(m.referencia ?? '—')} → ${String(m.seleccionada ?? '—')})`).join('; ')}.</>}</dd></div>
-          <div className="grid gap-1 sm:grid-cols-[170px_1fr]"><dt className="text-xs font-semibold uppercase tracking-wide" style={{ color: C.mute }}>5 · Qué comprobar</dt>
-            <dd className="text-sm"><ul className="list-disc pl-5">{cmp.synthesis.revisar.map(x => <li key={x}>{x}</li>)}</ul></dd></div>
-          <p className="text-xs" style={{ color: C.mute }}>{cmp.synthesis.estado_nota} Caída de rapidez ≠ fatiga, lesión ni necesidad de sustitución.</p>
+          {row('Qué cambió', cmp.synthesis.cambio)}
+          <div className="grid gap-1 sm:grid-cols-[170px_1fr]"><dt className="text-xs font-semibold uppercase tracking-wide" style={{ color: C.mute }}>Contexto</dt>
+            <dd className="text-sm">Comparación <b style={{ color: q!.nivel === 'alta' ? C.ok : C.warn }}>{q!.nivel.toUpperCase()}</b> con la jugada {cmp.reference.point.playId}. {cmp.mismatches.filter(m => m.difiere).length === 0 ? 'Sin diferencias clave.' : <>Difiere: {cmp.mismatches.filter(m => m.difiere).map(m => m.factor).join(', ')}.</>}</dd></div>
+          {row('Qué comprobar', cmp.synthesis.revisar[0])}
+          <details className="text-xs" style={{ color: C.mute }}>
+            <summary className="cursor-pointer font-semibold" style={{ color: C.text }}>Ver magnitud, referencia y más</summary>
+            <dl className="mt-2 space-y-2">
+              {row('Magnitud y persistencia', cmp.synthesis.magnitud_persistencia)}
+              {row('Referencia y muestra', cmp.synthesis.referencia)}
+              {row('Diferencias exactas', cmp.mismatches.filter(m => m.difiere).map(m => `${m.factor} (${String(m.referencia ?? '—')} → ${String(m.seleccionada ?? '—')})`).join('; ') || 'Ninguna')}
+              {row('Otra comprobación', cmp.synthesis.revisar[1])}
+              <p>{cmp.synthesis.estado_nota} Caída de rapidez ≠ fatiga, lesión ni necesidad de sustitución.</p>
+            </dl>
+          </details>
         </dl>
       )}
     </section>
@@ -286,20 +294,20 @@ function DemoNarrative({ demo, cmp }: { demo: Demo; cmp: Compare | null }) {
     ['3 · Contexto', cmp ? cmp.synthesis.contexto : 'Cargando…'],
     ['4 · Revisión', cmp ? cmp.synthesis.revisar[0] : 'Cargando…']]
   return (
-    <section className="rounded-xl border p-4" style={{ background: '#0a2236', borderColor: C.ok }} aria-label="Narrativa del caso">
-      <div className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: C.ok }}>Caso: {demo.title}</div>
+    <details className="rounded-xl border p-3" style={{ background: '#0a2236', borderColor: C.ok }} aria-label="Narrativa del caso">
+      <summary className="cursor-pointer text-[11px] font-semibold uppercase tracking-wider" style={{ color: C.ok }}>Caso: {demo.title} · <span className="normal-case tracking-normal" style={{ color: C.mute }}>ver la historia en 4 pasos</span></summary>
       <ol className="mt-2 grid gap-2 md:grid-cols-4">{steps.map(([t, v]) => <li key={t} className="text-xs"><b style={{ color: C.text }}>{t}</b><div style={{ color: C.mute }}>{v}</div></li>)}</ol>
       <p className="mt-2 text-[11px]" style={{ color: C.mute }}>Criterio de elección (datos reales, calculado por el backend): {demo.criterio}</p>
-    </section>
+    </details>
   )
 }
 
 function Stat({ label, big, foot, color }: { label: string; big: React.ReactNode; foot: string; color?: string }) {
   return (
-    <div className="rounded-xl border p-4" style={{ background: C.panel, borderColor: color ?? C.line }}>
-      <div className="text-xs uppercase tracking-wider" style={{ color: C.mute }}>{label}</div>
-      <div className="mt-2">{big}</div>
-      <div className="mt-2 text-xs" style={{ color: C.mute }}>{foot}</div>
+    <div className="rounded-xl border p-3" style={{ background: C.panel, borderColor: color ?? C.line }}>
+      <div className="text-[11px] uppercase tracking-wider" style={{ color: C.mute }}>{label}</div>
+      <div className="mt-1">{big}</div>
+      <div className="mt-1 text-[11px]" style={{ color: C.mute }}>{foot}</div>
     </div>
   )
 }
@@ -331,7 +339,7 @@ function Shell({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen" style={{ background: C.bg, color: C.text }}>
       <header className="border-b px-4 py-4 sm:px-6" style={{ borderColor: C.line }}>
         <h1 className="text-xl font-bold tracking-tight">Snap<span style={{ color: C.ok }}>Reverse</span> <span className="text-sm font-normal" style={{ color: C.mute }}>— Índice de Explosividad Relativa</span></h1>
-        <p className="text-xs" style={{ color: C.mute }}>Convierte tracking de pass rush en una lista explicable de secuencias que vale la pena revisar, comparando a cada jugador con su historial en contextos similares. Tracking NFL 2021 (BDB).</p>
+        <p className="text-xs" style={{ color: C.mute }}>Secuencias de pass rush que vale la pena revisar, comparando a cada jugador con su propio historial.</p>
         <details className="mt-1 text-xs" style={{ color: C.mute }}>
           <summary className="cursor-pointer" style={{ color: C.text }}>¿Para quién es y qué puede (y no puede) concluirse?</summary>
           <ul className="mt-1 list-disc pl-5">

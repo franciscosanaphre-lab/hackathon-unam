@@ -45,11 +45,11 @@ export default function AIPanel({ nflId, gameId, mode, onView }: { nflId: number
   const byId = (ids: string[]) => (r?.evidence ?? []).filter(e => ids.includes(e.id))
 
   return (
-    <Card title="SnapReverse AI · Coach Intelligence" sub="Your Defensive Intelligence Copilot — Amazon Nova 2 Lite investiga con herramientas de Python; cada cifra se traza a evidencia."
+    <Card title="SnapReverse AI · Coach Intelligence" sub="Your Defensive Intelligence Copilot"
       right={<button onClick={() => run(!!r)} disabled={busy} className="rounded-lg px-4 py-2 text-sm font-bold disabled:opacity-60" style={{ background: C.ok, color: '#04210f' }}>{busy ? 'Investigando…' : r ? 'Reanalizar' : 'ANALIZAR CON IA'}</button>}>
       {busy && <Msg kind="load">SnapReverse AI está consultando las métricas reales (≈10–20 s)…</Msg>}
       {err && !busy && <Msg kind="err">La IA no está disponible: {err}. El resto del dashboard sigue funcionando.</Msg>}
-      {!r && !busy && !err && <p className="text-sm" style={{ color: C.mute }}>Pulsa «Analizar con IA» para generar un informe automático del jugador seleccionado. Nada se envía a la IA hasta que lo solicites.</p>}
+      {!r && !busy && !err && <p className="text-sm" style={{ color: C.mute }}>Genera un informe automático del jugador. Nada se envía a la IA hasta que lo pidas.</p>}
       {r && !busy && (
         <div className="space-y-4 text-sm">
           {!r.structured && <p style={{ color: C.warn }}>La respuesta no tuvo el formato esperado; se muestra como texto sin verificar:<br /><span style={{ color: C.text }}>{r.raw_text}</span></p>}
@@ -63,22 +63,30 @@ export default function AIPanel({ nflId, gameId, mode, onView }: { nflId: number
               <ul className="space-y-1.5">{r.findings?.map((f, i) => <li key={i}>• {f.text}<Tag ok={f.verified} />{f.evidence_ids.length > 0 && <span className="ml-1 text-xs" style={{ color: C.mute }}>[{f.evidence_ids.join(', ')}]</span>}</li>)}</ul>
             </div>
             <div>
-              <h3 className="mb-1 text-[11px] font-semibold uppercase tracking-wider" style={{ color: C.mute }}>Interpretación e hipótesis (no son datos)<Tag ok={!!r.interpretation_numbers_verified} /></h3>
-              <p>{r.interpretation}</p>
-            </div>
-            <div>
               <h3 className="mb-1 text-[11px] font-semibold uppercase tracking-wider" style={{ color: C.warn }}>Qué revisaría el entrenador</h3>
               <ol className="list-decimal space-y-1 pl-5">{r.recommendations?.map((x, i) => <li key={i}>{x.text}<Tag ok={x.verified} /></li>)}</ol>
+            </div>
+            <details className="text-xs" style={{ color: C.mute }}>
+              <summary className="cursor-pointer font-semibold" style={{ color: C.text }}>Interpretación y limitaciones</summary>
+              <div className="mt-2 space-y-3">            <div>
+              <h3 className="mb-1 text-[11px] font-semibold uppercase tracking-wider" style={{ color: C.mute }}>Interpretación e hipótesis (no son datos)<Tag ok={!!r.interpretation_numbers_verified} /></h3>
+              <p>{r.interpretation}</p>
             </div>
             <div>
               <h3 className="mb-1 text-[11px] font-semibold uppercase tracking-wider" style={{ color: C.mute }}>Limitaciones</h3>
               <ul className="list-disc pl-5 text-xs" style={{ color: C.mute }}>{r.limitations?.map((x, i) => <li key={i}>{x}</li>)}</ul>
             </div>
+</div>
+            </details>
           </>)}
-          <div>
-            <h3 className="mb-1 text-[11px] font-semibold uppercase tracking-wider" style={{ color: C.mute }}>Tarjetas de evidencia (calculadas por Python) · herramientas: {r.tools_used.join(', ')}</h3>
+          <details open className="text-xs" style={{ color: C.mute }}>
+            <summary className="cursor-pointer font-semibold" style={{ color: C.text }}>Jugadas y evidencia ({r.evidence.length})</summary>
+            <div className="mt-2">          <div>
+            <p className="mb-1 text-[11px]">Calculadas por Python · herramientas: {r.tools_used.join(', ')}</p>
             <div className="grid gap-2 md:grid-cols-2">{r.evidence.map(e => <EvidenceCard key={e.id} e={e} onView={onView} />)}</div>
           </div>
+</div>
+          </details>
         </div>
       )}
     </Card>
