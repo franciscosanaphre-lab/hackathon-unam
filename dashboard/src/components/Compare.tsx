@@ -1,9 +1,23 @@
 import { useEffect, useRef, useState } from 'react'
-import { Compare as Cmp } from '../api'
+import { AiCompareOut, Compare as Cmp, Mode, Point, post } from '../api'
 import Field from './Field'
 import { C, Card, fmt, Msg } from './ui'
 
-export default function CompareView({ cmp }: { cmp: Cmp }) {
+export default function CompareView({ cmp, nflId, mode, points, refPlayId, onRef }: { cmp: Cmp; nflId: number; mode: Mode; points: Point[]; refPlayId: number | null; onRef: (p: number | null) => void }) {
+  const [ai, setAi] = useState<{ key: string; r?: AiCompareOut; err?: string } | null>(null)
+  const [aiBusy, setAiBusy] = useState(false)
+  const k = `${nflId}-${cmp.selected.gameId}-${cmp.selected.point.playId}-${cmp.reference.point.playId}-${mode}`
+  const curK = useRef(k); curK.current = k
+  useEffect(() => { setAiBusy(false) }, [k])
+  const explain = async () => {
+    const kk = k; setAiBusy(true)
+    try {
+      const r = await post<AiCompareOut>('ai/compare-plays', { nflId, gameId: cmp.selected.gameId, playId: cmp.selected.point.playId, refGameId: cmp.reference.gameId, refPlayId: cmp.reference.point.playId, mode })
+      if (curK.current === kk) setAi({ key: kk, r })
+    } catch (e) { if (curK.current === kk) setAi({ key: kk, err: (e as Error).message }) }
+    finally { if (curK.current === kk) setAiBusy(false) }
+  }
+  const aiNow = ai && ai.key === k ? ai : null
   const a = cmp.reference.replay, b = cmp.selected.replay
   const sa = a.snap_frame != null ? a.frames.indexOf(a.snap_frame) : 0
   const sb = b.snap_frame != null ? b.frames.indexOf(b.snap_frame) : 0
@@ -54,6 +68,16 @@ export default function CompareView({ cmp }: { cmp: Cmp }) {
         </label>
         <input type="range" min={minRel} max={maxRel} step={0.1} value={rel} onChange={e => { setPlay(false); setRel(Number(e.target.value)) }} className="min-w-[160px] flex-1" aria-label="Frame relativo al snap" />
       </div>
+      <div className="mt-3 flex flex-wrap items-center gap-2 text-xs" style={{ color: C.mute }}>
+        <label>Jugada de referencia
+          <select value={refPlayId ?? ''} onChange={e => onRef(e.target.value ? Number(e.target.value) : null)} className="ml-1 rounded border bg-transparent px-1 py-1" style={{ borderColor: C.line, color: C.text }}>
+            <option value="" style={{ background: C.bg }}>Automática (cercana a su mediana)</option>
+            {points.filter(p => p.playId !== cmp.selected.point.playId).map(p => <option key={p.playId} value={p.playId} style={{ background: C.bg }}>#{p.order} · jugada {p.playId} · índice {fmt(p.index, 0)}</option>)}
+          </select></label>
+        <button onClick={explain} disabled={aiBusy} className="rounded-md px-3 py-1.5 font-bold disabled:opacity-60" style={{ background: C.ok, color: '#04210f' }}>{aiBusy ? 'Explicando…' : 'Explicar diferencias con IA'}</button>
+      </div>
+      {aiNow?.err && <div className="mt-2 rounded border px-3 py-2 text-xs" style={{ borderColor: C.warn, color: C.warn }}>La IA no está disponible: {aiNow.err}</div>}
+      {aiNow?.r && <div className="mt-2 whitespace-pre-wrap rounded border px-3 py-2 text-sm" style={{ borderColor: C.line, background: '#081326', color: C.text }}>{aiNow.r.explanation.replace(/[#*]/g, '')}<div className="mt-1 text-[10px]" style={{ color: aiNow.r.numbers_verified ? C.ok : C.warn }}>{aiNow.r.numbers_verified ? 'Cifras verificadas contra el cálculo de Python' : 'Contiene cifras no verificadas'}</div></div>}
       <div className="mt-4 overflow-x-auto">
         <table className="w-full text-left text-xs">
           <thead style={{ color: C.mute }}><tr><th className="py-1">Contexto</th><th>Referencia</th><th>Seleccionada</th></tr></thead>

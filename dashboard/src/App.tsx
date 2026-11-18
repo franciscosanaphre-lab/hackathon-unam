@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { api, Compare, Demo, Game, Mode, PlayerItem, Point, Sensitivity, Series, Status } from './api'
+import AIPanel from './components/AIPanel'
+import ChatDrawer from './components/ChatDrawer'
 import CompareView from './components/Compare'
 import Evolution from './components/Evolution'
 import { C, Card, fmt, Msg, Pill, statusColor } from './components/ui'
@@ -22,6 +24,7 @@ export default function App() {
   const [cmp, setCmp] = useState<Compare | null>(null)
   const [cLoad, setCLoad] = useState(false)
   const [cErr, setCErr] = useState('')
+  const [refPlayId, setRefPlayId] = useState<number | null>(null)
   const [sens, setSens] = useState<Sensitivity | null>(null)
   const [demo, setDemo] = useState<Demo | null>(null)
   const [pending, setPending] = useState<{ nflId: number; playId?: number } | null>(null)
@@ -57,7 +60,7 @@ export default function App() {
 
   useEffect(() => {
     if (nflId == null || gameId == null) { setSeries(null); return }
-    setSLoad(true); setSErr(''); setCmp(null); setSens(null)
+    setSLoad(true); setSErr(''); setCmp(null); setSens(null); setRefPlayId(null)
     api<Series>(`players/${nflId}/games/${gameId}/series?mode=${mode}`).then(s => {
       setSeries(s)
       const first = s.summary.first_flag_playId
@@ -70,8 +73,8 @@ export default function App() {
   useEffect(() => {
     if (nflId == null || gameId == null || playId == null) return
     setCLoad(true); setCErr('')
-    api<Compare>(`compare?nflId=${nflId}&gameId=${gameId}&playId=${playId}&mode=${mode}`).then(setCmp).catch(e => { setCmp(null); setCErr((e as Error).message) }).finally(() => setCLoad(false))
-  }, [nflId, gameId, playId, mode])
+    api<Compare>(`compare?nflId=${nflId}&gameId=${gameId}&playId=${playId}&mode=${mode}${refPlayId ? `&refGameId=${gameId}&refPlayId=${refPlayId}` : ''}`).then(setCmp).catch(e => { setCmp(null); setCErr((e as Error).message) }).finally(() => setCLoad(false))
+  }, [nflId, gameId, playId, mode, refPlayId])
 
   const s = series?.summary
   const player = players?.find(p => p.nflId === nflId)
@@ -121,6 +124,8 @@ export default function App() {
           <Stat label="Referencia propia" big={<span className="text-3xl font-bold">{fmt(s.v_ref, 2)}<span className="text-base font-normal" style={{ color: C.mute }}> yd/s</span></span>} foot={`n=${s.ref_n} · ${s.ref_games} partidos · variación ±${fmt(s.habit_pct, 0)}%`} />
         </div>
 
+        <AIPanel nflId={nflId!} gameId={gameId!} mode={mode} onView={(p) => { setRefPlayId(null); setPlayId(p); document.getElementById('comparador')?.scrollIntoView({ behavior: 'smooth' }) }} />
+
         <Card title="Evolución durante el partido" sub={`${series.player.name} · ${series.game.away} @ ${series.game.home} · rapidez media 0–1.0 s tras el snap relativa a su referencia. Clic en un punto para abrir la jugada.`}>
           <Evolution s={series} selected={playId} onPick={(p: Point) => setPlayId(p.playId)} />
         </Card>
@@ -138,7 +143,7 @@ export default function App() {
 
         {cLoad && <Msg kind="load">Cargando replays…</Msg>}
         {cErr && <Msg kind="err">{cErr}</Msg>}
-        {cmp && !cLoad && <CompareView cmp={cmp} />}
+        {cmp && !cLoad && <div id="comparador"><CompareView cmp={cmp} nflId={nflId!} mode={mode} points={series.points.filter(p => p.comparable)} refPlayId={refPlayId} onRef={setRefPlayId} /></div>}
 
         {sens && (
           <Card title="Sensibilidad de la mediana del índice" sub={sens.nota}>
@@ -153,6 +158,7 @@ export default function App() {
         )}
         {player && <p className="text-xs" style={{ color: C.mute }}>{player.name}: {player.total_obs} intervenciones observadas en {player.total_games} partido(s) del dataset.</p>}
       </>)}
+      {series && nflId != null && gameId != null && <ChatDrawer nflId={nflId} gameId={gameId} mode={mode} playId={playId} refPlayId={refPlayId} name={series.player.name} onView={(p) => { setRefPlayId(null); setPlayId(p); document.getElementById('comparador')?.scrollIntoView({ behavior: 'smooth' }) }} />}
     </Shell>
   )
 }
