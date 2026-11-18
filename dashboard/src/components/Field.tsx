@@ -1,6 +1,9 @@
 import { Replay } from '../api'
 import { C } from './ui'
 
+export const EVT: Record<string, string> = { ball_snap: 'snap', autoevent_ballsnap: 'snap (auto)', pass_forward: 'lanzamiento', autoevent_passforward: 'lanzamiento (auto)', qb_sack: 'sack', pass_arrived: 'llega el pase', pass_outcome_caught: 'pase completo', pass_outcome_incomplete: 'pase incompleto', line_set: 'línea lista', man_in_motion: 'hombre en movimiento', play_action: 'play action', run: 'carrera', fumble: 'fumble', autoevent_passinterrupted: 'pase interrumpido' }
+export const evLabel = (e?: string) => (!e || e === 'None' ? '' : EVT[e] ?? e.replace(/_/g, ' '))
+
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t
 
 /** Posición interpolada (solo visual) en frame relativo al snap (fraccionario). */
@@ -45,7 +48,7 @@ export default function Field({ r, rel, title }: { r: Replay; rel: number; title
     <div>
       <div className="mb-1 flex items-center justify-between text-xs" style={{ color: C.mute }}>
         <b style={{ color: C.text }}>{title}</b>
-        <span>frame {curFrame}{r.snap_frame != null ? ` (snap ${rel >= 0 ? '+' : ''}${rel.toFixed(1)})` : ''}{ev ? ` · ${ev}` : ''}</span>
+        <span>frame {curFrame}{r.snap_frame != null ? ` · ${rel >= 0 ? '+' : '−'}${(Math.abs(rel) / r.fps).toFixed(2)} s desde el snap` : ' · sin snap'}{evLabel(ev) ? ` · ${evLabel(ev)}` : ''}</span>
       </div>
       <svg viewBox={`${x0} ${y0} ${W} ${H}`} className="w-full rounded-lg" style={{ background: '#0a2a1f', border: `1px solid ${C.line}` }}>
         {lines.map(x => <line key={x} x1={x} x2={x} y1={y0} y2={y0 + H} stroke="#fff" strokeOpacity={0.14} strokeWidth={0.15} />)}
@@ -53,7 +56,7 @@ export default function Field({ r, rel, title }: { r: Replay; rel: number; title
         <text x={los + 0.6} y={y0 + 2.2} fontSize={1.5} fill={C.pt}>LOS (balón en el snap)</text>
         <text x={x1 - 1} y={y0 + H - 1} fontSize={1.5} fill="#fff" fillOpacity={0.55} textAnchor="end">ataque →</text>
         {target && <polyline points={trail(String(target.nflId), maxRel)} fill="none" stroke={C.warn} strokeOpacity={0.25} strokeWidth={0.35} />}
-        {target && win && <polyline points={(() => { const a: string[] = []; for (let k = Math.max(0, win[0] - 1); k <= Math.min(win[1], rel); k++) { const p = posAt(r, String(target.nflId), k); if (p) a.push(`${p[0]},${p[1]}`) } return a.join(' ') })()} fill="none" stroke={C.warn} strokeWidth={0.7} />}
+        {target && win && <polyline points={(() => { const a: string[] = []; for (let k = 0; k <= Math.min(win[1], rel); k++) { const p = posAt(r, String(target.nflId), k); if (p) a.push(`${p[0]},${p[1]}`) } return a.join(' ') })()} fill="none" stroke={C.warn} strokeWidth={0.7} />}
         {r.players.map(p => {
           const q = posAt(r, String(p.nflId), rel)
           if (!q) return null
@@ -71,7 +74,7 @@ export default function Field({ r, rel, title }: { r: Replay; rel: number; title
       </svg>
       <div className="mt-1 text-[11px]" style={{ color: C.mute }}>
         <span style={{ color: '#4f8cff' }}>●</span> defensa ({r.defensive_team}) · <span style={{ color: C.off }}>●</span> ataque · <span style={{ color: C.warn }}>●</span> defensivo analizado ·
-        trayectoria resaltada = ventana 0–1 s tras snap {inWin ? '(en ventana)' : ''}
+        trayectoria gruesa = ventana de la métrica (snap → +1.0 s){inWin ? ' · dentro de la ventana' : ''}
       </div>
     </div>
   )

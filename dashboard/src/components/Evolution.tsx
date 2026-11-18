@@ -9,6 +9,11 @@ const clock = (s: number) => {
 }
 
 export default function Evolution({ s, selected, onPick }: { s: Series; selected: number | null; onPick: (p: Point) => void }) {
+  const move = (d: number) => {
+    const i = s.points.findIndex(p => p.playId === selected)
+    const n = s.points[Math.min(s.points.length - 1, Math.max(0, (i < 0 ? 0 : i) + d))]
+    if (n) onPick(n)
+  }
   const pts = s.points.filter(p => p.elapsed != null)
   const data = pts.map(p => ({ ...p, band: p.lo != null && p.hi != null ? [p.lo, p.hi] : null }))
   const withIdx = data.filter(d => d.index != null)
@@ -25,12 +30,16 @@ export default function Evolution({ s, selected, onPick }: { s: Series; selected
     if (cx == null || cy == null) return <g />
     const p = payload as Point
     const sel = p.playId === selected
-    const flag = p.status === 'caida_para_revisar'
+    const flag = p.status === 'caida_para_revisar' && p.evaluated
     const col = flag ? C.warn : p.comparable ? C.pt : 'none'
+    const r = sel ? 7 : 5
     return (
       <g style={{ cursor: 'pointer' }} onClick={() => onPick(p)}>
         <circle cx={cx} cy={cy} r={12} fill="transparent" />
-        <circle cx={cx} cy={cy} r={sel ? 6.5 : 4.5} fill={col} stroke={p.comparable ? (sel ? '#fff' : C.bg) : C.mute} strokeWidth={sel ? 2 : 1.5} />
+        {flag
+          ? <polygon points={`${cx},${cy - r - 1} ${cx + r + 1},${cy + r} ${cx - r - 1},${cy + r}`} fill={col} stroke={sel ? '#fff' : C.bg} strokeWidth={sel ? 2 : 1.5} />
+          : <circle cx={cx} cy={cy} r={r - 0.5} fill={col} stroke={p.comparable ? (sel ? '#fff' : C.bg) : C.mute} strokeWidth={sel ? 2 : 1.5} />}
+        {sel && <circle cx={cx} cy={cy} r={r + 5} fill="none" stroke="#fff" strokeOpacity={0.6} strokeDasharray="2 2" />}
       </g>
     )
   }
@@ -39,7 +48,8 @@ export default function Evolution({ s, selected, onPick }: { s: Series; selected
     const p: Point = payload[0].payload
     return (
       <div className="rounded-lg border p-3 text-xs" style={{ background: C.bg, borderColor: C.line, color: C.text, maxWidth: 270 }}>
-        <div className="mb-1 font-semibold">Intervención #{p.order} · {p.elapsed != null ? clock(p.elapsed) : ''}</div>
+        <div className="mb-1 font-semibold">Intervención #{p.order} · {p.elapsed != null ? clock(p.elapsed) : ''} · jugada {p.playId}</div>
+        <div className="mb-1" style={{ color: statusColor(p.status) }}>{p.evaluated ? (p.status === 'caida_para_revisar' ? '▲ Marca de revisión' : p.status === 'dentro_variacion' ? 'Dentro de su variación' : 'Evidencia insuficiente') : 'No evaluada (fuera de la regla)'}</div>
         <div>Índice: <b>{fmt(p.index, 0)}</b> · Rapidez 0–1 s: {fmt(p.v, 2)} yd/s</div>
         <div style={{ color: C.mute }}>Ref. {fmt(p.v_ref, 2)} yd/s · n={p.ref_n}, {p.ref_games} partidos</div>
         <div className="mt-1">{p.ctx.alineacion} · {p.ctx.down}&amp;{p.ctx.yardas_por_ganar} · {p.ctx.formacion_ofensiva}</div>
@@ -52,7 +62,14 @@ export default function Evolution({ s, selected, onPick }: { s: Series; selected
     )
   }
   return (
-    <div>
+    <div tabIndex={0} role="group" aria-label="Gráfica de evolución. Usa las flechas izquierda y derecha para cambiar de intervención; Inicio y Fin para ir a la primera o última."
+      onKeyDown={e => { if (e.key === 'ArrowRight') { e.preventDefault(); move(1) } else if (e.key === 'ArrowLeft') { e.preventDefault(); move(-1) } else if (e.key === 'Home') { e.preventDefault(); move(-999) } else if (e.key === 'End') { e.preventDefault(); move(999) } }}
+      className="rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-400">
+      <div className="mb-2 flex flex-wrap items-center gap-2 text-xs" style={{ color: C.mute }}>
+        <button onClick={() => move(-1)} className="rounded border px-2 py-1 font-semibold" style={{ borderColor: C.line, color: C.text }} aria-label="Intervención anterior">◀ anterior</button>
+        <button onClick={() => move(1)} className="rounded border px-2 py-1 font-semibold" style={{ borderColor: C.line, color: C.text }} aria-label="Intervención siguiente">siguiente ▶</button>
+        <span>También con las flechas del teclado · clic en un punto abre su replay.</span>
+      </div>
       <div style={{ width: '100%', height: 340 }}>
         <ResponsiveContainer>
           <ComposedChart data={data} margin={{ top: 8, right: 16, bottom: 8, left: 0 }}>
@@ -77,12 +94,27 @@ export default function Evolution({ s, selected, onPick }: { s: Series; selected
       </div>
       <ul className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-xs" style={{ color: C.mute }}>
         <li><span style={{ color: C.pt }}>●</span> Intervención comparable</li>
-        <li><span style={{ color: C.warn }}>●</span> Marca de revisión</li>
+        <li><span style={{ color: C.warn }}>▲</span> Marca de revisión (triángulo ámbar)</li>
         <li>○ Play action / no comparable (fuera de referencia y alertas)</li>
         <li><span style={{ color: C.pt }}>━</span> Tendencia suavizada ± incertidumbre (media móvil de {3}; {s.summary.mode === 'live' ? 'solo pasado' : 'centrada'})</li>
         <li><span style={{ color: C.ok }}>▭</span> Variación habitual (±{fmt(habit, 0)}%)</li>
         <li>▨ Sin observación como Pass Rush — <b>no</b> es descanso confirmado</li>
       </ul>
+      <details className="mt-3 text-xs" style={{ color: C.mute }}>
+        <summary className="cursor-pointer font-semibold" style={{ color: C.text }}>Ver como tabla (alternativa accesible)</summary>
+        <div className="mt-2 max-h-72 overflow-auto">
+          <table className="w-full text-left"><caption className="sr-only">Intervenciones del partido</caption>
+            <thead><tr><th>#</th><th>Reloj</th><th>Jugada</th><th>Índice</th><th>Rapidez (yd/s)</th><th>Estado</th><th></th></tr></thead>
+            <tbody>
+              {s.points.map(p => (
+                <tr key={p.playId} className="border-t" style={{ borderColor: C.line, background: p.playId === selected ? C.line : 'transparent' }}>
+                  <td>{p.order}</td><td>Q{p.ctx.cuarto} {p.ctx.reloj}</td><td>{p.playId}</td><td>{fmt(p.index, 0)}</td><td>{fmt(p.v, 2)}</td>
+                  <td>{!p.evaluated ? 'No evaluada' : p.status === 'caida_para_revisar' ? '▲ Marca' : p.status === 'dentro_variacion' ? 'Normal' : 'Insuficiente'}</td>
+                  <td><button onClick={() => onPick(p)} className="rounded border px-2 py-0.5" style={{ borderColor: C.line, color: C.text }}>Abrir</button></td>
+                </tr>))}
+            </tbody></table>
+        </div>
+      </details>
     </div>
   )
 }

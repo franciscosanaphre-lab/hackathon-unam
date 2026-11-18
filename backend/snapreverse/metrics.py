@@ -90,7 +90,7 @@ def build_interventions(tb: Tables, cfg=CFG) -> pd.DataFrame:
     df["blockers"] = df.blockers.fillna(0).astype(int)
     pcols = ["gameId", "playId", "quarter", "down", "yardsToGo", "gameClock", "defensiveTeam", "possessionTeam",
              "offenseFormation", "personnelD", "defendersInBox", "dropBackType", "pff_playAction",
-             "pff_passCoverage", "passResult", "playDescription"]
+             "pff_passCoverage", "pff_passCoverageType", "passResult", "playDescription"]
     df = df.merge(plays[pcols], on=["gameId", "playId"], how="left", validate="m:1")
     gcols = games[["gameId", "week", "gameDate", "gameTimeEastern", "homeTeamAbbr", "visitorTeamAbbr"]]
     df = df.merge(gcols, on="gameId", how="left", validate="m:1")

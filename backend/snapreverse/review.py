@@ -51,7 +51,7 @@ def _ctx(r) -> dict:
     return {"cuarto": int(r.quarter), "reloj": r.gameClock, "down": None if pd.isna(r.down) else int(r.down),
             "yardas_por_ganar": None if pd.isna(r.yardsToGo) else int(r.yardsToGo),
             "alineacion": r.pff_positionLinedUp, "grupo_alineacion": r.group,
-            "formacion_ofensiva": r.offenseFormation, "cobertura": r.pff_passCoverage,
+            "formacion_ofensiva": r.offenseFormation, "cobertura": r.pff_passCoverage, "tipo_cobertura": r.pff_passCoverageType,
             "play_action": bool(r.pff_playAction == 1) if not pd.isna(r.pff_playAction) else None,
             "n_rushers": int(r.n_rushers), "bloqueadores_asignados": int(r.blockers),
             "t_evento_s": None if pd.isna(r.t_evento) else float(r.t_evento),
@@ -81,7 +81,7 @@ def player_game_series(df: pd.DataFrame, nfl_id: int, game_id: int, mode: str, c
         status = point_status(idx_hist, ref, cfg)
         pts.append({"playId": int(r.playId), "order": len(pts) + 1, "elapsed": r.elapsed,
                     "v": float(r.v) if r.valid else None, "disp": float(r.disp) if r.valid else None,
-                    "index": idx, "comparable": bool(r.comparable), "valid": bool(r.valid),
+                    "index": idx, "comparable": bool(r.comparable), "evaluated": bool(r.comparable and idx is not None), "valid": bool(r.valid),
                     "excl_reason": r.excl_reason or ("play action: contexto no comparable" if r.valid and not r.comparable else ""),
                     "status": status, "v_ref": ref["v_ref"], "ref_n": ref["n"], "ref_games": ref["games"],
                     "ref_basis": ref["basis"], "habit_pct": ref["habit_pct"], "ctx": _ctx(r)})
@@ -93,7 +93,7 @@ def player_game_series(df: pd.DataFrame, nfl_id: int, game_id: int, mode: str, c
     for i, (m, lo, hi) in zip(cmp_i, sm):
         pts[i]["trend"], pts[i]["lo"], pts[i]["hi"] = m, lo, hi
     last = pts[-1]
-    flagged = [p for p in pts if p["status"] == STATUS_FLAG]
+    flagged = [p for p in pts if p["status"] == STATUS_FLAG and p["evaluated"]]
     summary = {
         "mode": mode, "n_obs": len(pts), "n_valid": sum(p["valid"] for p in pts),
         "n_comparable": len(cmp_i), "n_with_index": len(cmp_i),
@@ -104,6 +104,7 @@ def player_game_series(df: pd.DataFrame, nfl_id: int, game_id: int, mode: str, c
         "ref_games": last["ref_games"], "ref_basis": last["ref_basis"], "habit_pct": last["habit_pct"],
         "threshold_pts": _threshold(last["habit_pct"], cfg), "games_with_data": int(pl.gameId.nunique()),
         "player_total_obs": int(len(pl)),
+        "ref_kind": "fija: toda su historia del dataset (retrospectivo)" if mode == "retro" else "creciente: solo intervenciones previas a cada punto; aquí, la del último punto",
     }
     return {"points": pts, "gaps": observation_gaps(pg, game_id, df, cfg), "summary": summary}
 

@@ -24,8 +24,19 @@ Media móvil de 3 intervenciones comparables; banda = ±1.96·EE de esa ventana 
 - Si no, *dentro de su variación habitual*.
 - **En ese momento**: referencia y hábito calculados solo con intervenciones estrictamente anteriores (hay prueba que lo verifica). **Retrospectivo**: toda la evidencia del jugador.
 
-## Sensibilidad (resultado real)
-Sobre 1,914 jugador‑partidos con ≥6 intervenciones: «en ese momento» 6 con marca / 1,323 estables / 585 evidencia insuficiente; retrospectivo 2 / 1,763 / 149. Las marcas son raras y poco estables entre modos. En el caso demo, la única marca «en ese momento» desaparece en modo retrospectivo. El endpoint `/sensitivity` muestra cómo cambia la mediana del índice con otras decisiones (media vs mediana, solo otros partidos, incluir play action, desplazamiento).
+## Estados y referencias: qué significa cada cifra
+- **Estado de la jugada**: regla aplicada hasta esa intervención. **Estado al final del partido**: la regla en el último punto. **Resumen del partido**: índice mediano, muestra y marcas. Pueden diferir (una secuencia baja a mitad de partido no cambia el estado final si las últimas jugadas volvieron a su rango).
+- **Referencia**: en «en ese momento» es **creciente** (solo intervenciones previas a cada punto; las tarjetas muestran la del último punto); en «retrospectivo» es **fija**. Por eso la tabla de sensibilidad (base retrospectiva, grupo de alineación de cada jugada) y las tarjetas del modo «en ese momento» pueden diferir legítimamente (p. ej. 2.59 vs 2.72 yd/s). En retrospectivo, la base de sensibilidad coincide exactamente con la tarjeta (hay prueba).
+- Una intervención se **evalúa** solo si es comparable (sin play action, ventana válida) y tiene referencia suficiente; las marcas solo cuentan sobre intervenciones evaluadas.
+
+## Emparejamiento de la jugada de referencia
+Filtros duros: mismo jugador, comparable, mismo grupo de alineación; en «en ese momento» solo jugadas anteriores. Se elige la de **menor puntaje de diferencias de contexto** (alineación exacta y bloqueadores asignados pesan 2; rushers, down, distancia, formación, tipo de cobertura y tiempo hasta lanzamiento pesan 1); empate: otro partido (historial), luego cercanía cronológica. **No se usa la rapidez** (hay prueba). Calidad: alta (peso de diferencias ≤1), media (2–3), baja (≥4). Si no hay jugadas previas comparables se informa y se conserva el replay de la jugada seleccionada. No existe asignación (stunt, contención) en los datos: no se infiere.
+
+## Métricas complementarias evaluadas (no incorporadas a la UI)
+Con 3,795 intervenciones de 12 partidos: tiempo de reacción (primer frame >1 yd/s) correlaciona −0.77 con la rapidez; rapidez 0–0.5 s, 0.5–1 s y avance longitudinal 0.89–0.96; **desplazamiento lateral 0.26** (casi independiente), pero depende de la asignación/carril (contención, stunt) que los datos no traen, por lo que no es defendible como «explosividad». Se descartó añadirlas: redundantes o no interpretables. El avance hacia el QB requiere identificar al QB y su dropback; queda como trabajo futuro.
+
+## Validación
+Ver `VALIDACION.md` (`.venv/bin/python -m backend.validation`): cobertura, alertas por partido/jugador, evidencia insuficiente, sensibilidad a parámetros y baseline simple. **Sin etiquetas humanas no se reporta precisión ni recall.** Resultados: marcas en 56 de 1,457 jugador‑partidos evaluables «en ese momento» (3.8%) y 30 de 1,992 en retrospectivo (1.5%); muy sensible a la persistencia (2 jugadas: 184; 4: 17) y al multiplicador de variabilidad (1.0: 158; 2.0: 19): los umbrales son heurísticos. El baseline simple marca 22% de los casos y 77% de sus marcas incluyen play action.
 
 ## Límites
 No mide energía, fatiga ni lesiones; no sabe si una sustitución mejora el resultado; no es ranking de talento. Menor movimiento puede ser contención, stunt, cobertura, doble bloqueo o liberación rápida. Muestras pequeñas por partido (mediana 8 intervenciones). Sin validar contra resultados.

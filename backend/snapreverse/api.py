@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException, Query
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 
 from .config import CFG
 from .data_access import clean
@@ -49,6 +49,33 @@ def demo_case():
     if not svc.demo:
         raise HTTPException(404, "Sin caso demo")
     return _ok(svc.demo)
+
+
+@router.get("/demo-cases")
+def demo_cases():
+    _ready()
+    if not svc.demo_ready:
+        raise HTTPException(503, "Preparando casos demo; reintenta en unos segundos.")
+    return _ok(svc.demos)
+
+
+@router.get("/games/{game_id}/teams/{team}/review-inbox")
+def review_inbox(game_id: int, team: str, mode: str = Query("live")):
+    _ready()
+    r = svc.inbox(game_id, team.upper(), _mode(mode))
+    if r is None:
+        raise HTTPException(404, "Partido/equipo sin intervenciones observadas")
+    return _ok(r)
+
+
+@router.get("/report")
+def report(nflId: int, gameId: int, playId: int, mode: str = Query("live")):
+    _ready()
+    md = svc.report_md(nflId, gameId, playId, _mode(mode))
+    if md is None:
+        raise HTTPException(404, "Intervención inexistente")
+    return Response(md, media_type="text/markdown; charset=utf-8",
+                    headers={"Content-Disposition": f'attachment; filename="snapreverse_{nflId}_{gameId}_{playId}.md"'})
 
 
 @router.get("/games")
@@ -108,5 +135,5 @@ def compare(nflId: int, gameId: int, playId: int, refGameId: int | None = None, 
     if r is None:
         raise HTTPException(404, "Intervención inexistente")
     if r.get("error"):
-        raise HTTPException(422, r["message"])
+        return JSONResponse(clean({"error": r["error"], "message": r["message"], "selected_only": r.get("selected_only")}), status_code=200)
     return _ok(r)

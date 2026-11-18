@@ -21,7 +21,7 @@ export interface Ctx {
 }
 export interface Point {
   playId: number; order: number; elapsed: number | null; v: number | null; disp: number | null; index: number | null
-  comparable: boolean; valid: boolean; excl_reason: string; status: string; v_ref: number | null; ref_n: number; ref_games: number
+  comparable: boolean; evaluated: boolean; valid: boolean; excl_reason: string; status: string; v_ref: number | null; ref_n: number; ref_games: number
   ref_basis: string; habit_pct: number | null; ctx: Ctx; trend: number | null; lo: number | null; hi: number | null
 }
 export interface Review {
@@ -31,7 +31,7 @@ export interface Review {
 export interface Summary {
   mode: Mode; n_obs: number; n_valid: number; n_comparable: number; median_index: number | null; status: string; status_label: string
   first_flag_playId: number | null; n_flagged_points: number; v_ref: number | null; ref_n: number; ref_games: number; ref_basis: string
-  habit_pct: number | null; threshold_pts: number; games_with_data: number; player_total_obs: number
+  habit_pct: number | null; threshold_pts: number; games_with_data: number; player_total_obs: number; ref_kind: string
 }
 export interface Series {
   points: Point[]; gaps: { start: number; end: number; n_plays: number; label: string }[]; summary: Summary; review: Review
@@ -44,14 +44,27 @@ export interface Replay {
   players: { nflId: number; team: string | null; jersey: number | null; name: string | null; pos: string | null; role: string | null; lined_up: string | null; target: boolean }[]
   description: string; defensive_team: string; possession_team: string; sync_note: string
 }
+export interface RefPoint { playId: number; gameId: number; v: number | null; disp: number | null; index_vs_ref_propia: number | null; elapsed: number; ctx: Ctx; comparable: boolean }
+export interface Mismatch { factor: string; peso: number; referencia: unknown; seleccionada: unknown; difiere: boolean; sin_dato: boolean }
+export interface Synthesis { cambio: string; magnitud_persistencia?: string; referencia: string; contexto: string; revisar: string[]; estado_nota: string }
 export interface Compare {
-  reference: { point: Point; replay: Replay; gameId: number }; selected: { point: Point; replay: Replay; gameId: number }
+  reference: { point: RefPoint; replay: Replay; gameId: number }; selected: { point: Point; replay: Replay; gameId: number }
   context: { campo: string; referencia: unknown; seleccionada: unknown; difiere: boolean }[]
-  warnings: string[]; reference_auto: boolean; reference_rule: string
+  mismatches: Mismatch[]; quality: { nivel: 'alta' | 'media' | 'baja'; n_diferencias: number; peso_diferencias: number; regla: string }
+  match_info: { n_candidatas?: number; criterio?: string; solo_pasado?: boolean; mismo_partido?: boolean }
+  warnings: string[]; reference_auto: boolean; reference_rule: string; mode: Mode
+  sequence: { plays: { playId: number; index: number; reloj: string }[]; mean_index: number | null; n_below: number; of: number; threshold_index: number; persistent: boolean }
+  selected_state: { status: string; label: string }; game_state: { status: string; label: string }; synthesis: Synthesis
 }
-export interface Sensitivity { variantes: { variante: string; mediana_indice: number | null; v_ref?: number; nota?: string }[]; nota: string }
-export interface Status { ready: boolean; error: string | null }
-export interface Demo { nflId: number; gameId: number; team: string; name: string; week: number; n_comparable: number; has_flag_live: boolean; criterio: string }
+export interface NoRef { error: string; message: string; selected_only: { point: Point; replay: Replay; gameId: number } | null }
+export interface Sensitivity {
+  variantes: { variante: string; mediana_indice: number | null; v_ref_tipica: number | null; n: number; descripcion: string }[]
+  modos: Record<string, { mediana_indice: number | null; ref_final: number | null; ref_n: number }>; nota: string
+}
+export interface InboxItem { nflId: number; name: string; pos: string | null; kind: 'marca' | 'cerca'; playId: number; plays: number[]; n_plays: number; mean_index: number; reloj: string; n_comparable: number; ref_n: number; ref_games: number; threshold_index: number; retro_also: boolean | null }
+export interface Inbox { mode: Mode; items: InboxItem[]; evaluated: number; insufficient: number; order_rule: string }
+export interface Status { ready: boolean; demo_ready?: boolean; error: string | null }
+export interface Demo { kind: 'signal' | 'normal' | 'context'; title: string; nflId: number; gameId: number; team: string; name: string; week: number; playId: number | null; n_comparable: number; flags_live: number; flags_retro: number | null; median_index_live: number | null; ref_n: number; criterio: string; context_diffs?: string[] }
 
 export async function post<T>(path: string, body: unknown): Promise<T> {
   const r = await fetch(`api/${path}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })

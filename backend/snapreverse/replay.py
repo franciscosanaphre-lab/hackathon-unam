@@ -61,7 +61,7 @@ def build_replay(tb: Tables, game_id: int, play_id: int, nfl_id: int) -> dict | 
 
 
 CONTEXT_FIELDS = [("cuarto", "Cuarto"), ("reloj", "Reloj"), ("down", "Down"), ("yardas_por_ganar", "Yardas por ganar"),
-                  ("alineacion", "Alineación"), ("formacion_ofensiva", "Formación ofensiva"), ("cobertura", "Cobertura"),
+                  ("alineacion", "Alineación"), ("formacion_ofensiva", "Formación ofensiva"), ("cobertura", "Cobertura"), ("tipo_cobertura", "Tipo de cobertura"),
                   ("play_action", "Play action"), ("n_rushers", "Rushers"), ("bloqueadores_asignados", "Bloqueadores asignados"),
                   ("t_evento_s", "Tiempo hasta lanzamiento/sack (s)"), ("personal_def", "Personal defensivo"), ("resultado", "Resultado")]
 
